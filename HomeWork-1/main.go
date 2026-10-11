@@ -50,7 +50,7 @@ func initGame() {
 	player = &Player{
 				Inventary: make(map[string]bool),
 	} 
-	world := make(map[string]*Room)
+	world = make(map[string]*Room)
 
 	kitchen := &Room{
 		Name: "Кухня",
@@ -94,7 +94,7 @@ func initGame() {
 		Items: []*Item{
 			{Name: "ключи", Location: "стол"},
 			{Name: "конспекты", Location: "стол"},
-			{Name: "рюкзвк", Location: "стул"},
+			{Name: "рюкзак", Location: "стул"},
 		},
 	}
 	room.LookFunc = func() string{
@@ -143,7 +143,7 @@ func initGame() {
 }
 
 func handleCommand(command string) string {
-	parts := strings.Split(command, "")
+	parts := strings.Split(command, " ")
 	if len(parts) == 0{
 		return "неизвестная команда"
 	}
