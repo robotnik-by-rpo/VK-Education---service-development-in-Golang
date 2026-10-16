@@ -245,3 +245,73 @@ func TestReadUsersMalformedXML(t *testing.T) {
 		t.Fatal("expected error for malformed xml")
 	}
 }
+
+func TestWriteError(t *testing.T) {
+    cases := []struct {
+        name   string
+        status int
+        msg    string
+    }{
+        {"400", http.StatusBadRequest, "bad request msg"},
+        {"500", http.StatusInternalServerError, "internal msg"},
+    }
+
+    for _, tc := range cases {
+        t.Run(tc.name, func(t *testing.T) {
+            w := httptest.NewRecorder()
+            writeError(w, tc.status, tc.msg)
+
+            if w.Code != tc.status {
+                t.Fatalf("status: want %d, got %d", tc.status, w.Code)
+            }
+            if ct := w.Header().Get("Content-Type"); ct != "application/json" {
+                t.Fatalf("content-type: want application/json, got %q", ct)
+            }
+
+            var resp SearchErrorResponse
+            if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+                t.Fatalf("cant unpack body: %v", err)
+            }
+            if resp.Error != tc.msg {
+                t.Fatalf("error field: want %q, got %q", tc.msg, resp.Error)
+            }
+        })
+    }
+}
+
+func TestReadUsersOK(t *testing.T) {
+    users, err := readUsers("dataset.xml")
+    if err != nil {
+        t.Fatalf("unexpected error: %v", err)
+    }
+    if len(users) != 35 {
+        t.Fatalf("want 35 users, got %d", len(users))
+    }
+
+    first := users[0]
+    if first.ID != 0 || first.FirstName != "Boyd" || first.LastName != "Wolf" ||
+        first.Age != 22 || first.Gender != "male" {
+        t.Fatalf("first user mismatch: %+v", first)
+    }
+
+    last := users[len(users)-1]
+    if last.ID != 34 || last.FirstName != "Kane" || last.LastName != "Sharp" ||
+        last.Age != 34 || last.Gender != "male" {
+        t.Fatalf("last user mismatch: %+v", last)
+    }
+}
+
+func TestReadUsersInvalidXML(t *testing.T) {
+    f, err := os.CreateTemp("", "bad_*.xml")
+    if err != nil {
+        t.Fatal(err)
+    }
+    defer os.Remove(f.Name())
+    f.WriteString(`<root><row><id>0</id>`)
+    f.Close()
+
+    _, err = readUsers(f.Name())
+    if err == nil {
+        t.Fatal("expected error for malformed xml")
+    }
+}
