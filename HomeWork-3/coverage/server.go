@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
-	"io"
 	"net/http"
 	"os"
 	"sort"
@@ -11,6 +10,12 @@ import (
 	"strings"
 )
 var DatasetFile = "dataset.xml"
+
+
+type Dataset struct {
+	XMLName xml.Name  `xml:"root"`
+	Users   []UserXML `xml:"row"`
+}
 
 type UserXML struct{
 	ID     int	`xml:"id"`
@@ -30,35 +35,17 @@ func writeError(w http.ResponseWriter, status int, msg string){
 }
 
 func readUsers(path string) ([]UserXML, error) {
-	file, err := os.Open(path)
-
-	if err != nil{
+	data, err := os.ReadFile(path)
+	if err != nil {
 		return nil, err
 	}
 
-	defer file.Close()
-
-	decoder := xml.NewDecoder(file)
-	users := make([]UserXML, 0)
-	for {
-		token, err := decoder.Token()
-		if err == io.EOF{
-			break
-		} 
-		if err != nil{
-			return nil, err
-		}
-
-		if se, ok := token.(xml.StartElement); ok && se.Name.Local == "row"{
-			var u UserXML
-			if err := decoder.DecodeElement(&u, &se); err != nil{
-				return nil, err
-			}
-			users = append(users, u)
-		}
+	var dataset Dataset
+	if err := xml.Unmarshal(data, &dataset); err != nil {
+		return nil, err
 	}
 
-	return users, nil
+	return dataset.Users, nil
 } 
 
 func SearchServer(w http.ResponseWriter, r *http.Request) {
